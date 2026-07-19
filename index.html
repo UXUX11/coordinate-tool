@@ -1,141 +1,140 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>座標快速複製</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>座標快速複製</title>
 
-<style>
-body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    margin:20px;
-    background:#f5f5f5;
-}
-
-h1{
-    text-align:center;
-}
-
-textarea{
-    width:100%;
-    height:250px;
-    font-size:16px;
-    padding:10px;
-    box-sizing:border-box;
-    border-radius:10px;
-    border:1px solid #ccc;
-}
-
-.category{
-    margin-top:30px;
-    font-size:24px;
-    font-weight:bold;
-}
-
-.coord{
-    background:white;
-    padding:15px;
-    margin-top:8px;
-    border-radius:10px;
-    cursor:pointer;
-    font-size:20px;
-    border:1px solid #ddd;
-    transition:.2s;
-}
-
-.coord:hover{
-    background:#e8f4ff;
-}
-
-.copied{
-    background:#c8ffd2 !important;
-}
-</style>
-
-</head>
-<body>
-
-<h1>📍 座標快速複製</h1>
-
-<textarea id="input" placeholder="直接貼上 Discord 的座標..."></textarea>
-
-<div id="output"></div>
-
-<script>
-
-const input = document.getElementById("input");
-const output = document.getElementById("output");
-
-// 貼上或輸入就立即產生
-input.addEventListener("input", generate);
-
-function generate(){
-
-    output.innerHTML = "";
-
-    const text = input.value;
-    const lines = text.split(/\r?\n/);
-
-    lines.forEach(line=>{
-
-        line = line.trim();
-
-        if(line==="") return;
-
-        // 判斷是否為座標
-        const match = line.match(/[（(]\s*([-\d.]+)\s*,\s*([-\d.]+)\s*[）)]/);
-
-        if(match){
-
-            const coord = match[1] + ", " + match[2];
-
-            const div = document.createElement("div");
-            div.className = "coord";
-            div.textContent = "📍 " + coord;
-
-            div.onclick = async ()=>{
-
-                try{
-
-                    await navigator.clipboard.writeText(coord);
-
-                    div.classList.add("copied");
-
-                    const old = div.textContent;
-
-                    div.textContent = "✅ 已複製：" + coord;
-
-                    setTimeout(()=>{
-
-                        div.textContent = old;
-                        div.classList.remove("copied");
-
-                    },800);
-
-                }catch{
-
-                    alert("複製失敗");
-
-                }
-
-            };
-
-            output.appendChild(div);
-
-        }else{
-
-            const title = document.createElement("div");
-            title.className = "category";
-            title.textContent = line;
-            output.appendChild(title);
-
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
         }
 
-    });
+        h1 {
+            text-align: center;
+        }
 
-}
+        textarea {
+            width: 100%;
+            height: 250px;
+            font-size: 16px;
+            padding: 10px;
+            box-sizing: border-box;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
 
-</script>
+        .category {
+            margin-top: 30px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .coord {
+            background: white;
+            padding: 15px;
+            margin-top: 8px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            border: 1px solid #ddd;
+            transition: .2s;
+        }
+
+        .coord:hover {
+            background: #e8f4ff;
+        }
+
+        .copied {
+            background: #c8ffd2 !important;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <h1>📍 座標快速複製</h1>
+
+    <div id="favoritesSection" style="display:none">
+        <h2>⭐ 我的收藏</h2>
+        <div id="favorites"></div>
+        <hr>
+    </div>
+
+    <textarea id="input" placeholder="直接貼上座標..."></textarea>
+
+    <div id="output"></div>
+
+    <script>
+        const input = document.getElementById("input");
+        const output = document.getElementById("output");
+        const favDiv = document.getElementById("favorites");
+        const favSec = document.getElementById("favoritesSection");
+        let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+
+        renderFavorites();
+        input.addEventListener("input", generate);
+
+        function save() { localStorage.setItem("favorites", JSON.stringify(favorites)); renderFavorites(); }
+        function renderFavorites() {
+            favDiv.innerHTML = "";
+            favSec.style.display = favorites.length ? "block" : "none";
+            favorites.forEach((f, i) => {
+                const d = document.createElement("div");
+                d.className = "coord";
+                d.innerHTML = `⭐ <b>${f.name}</b><br>📍 ${f.coord} <span style="float:right">🗑️</span>`;
+                d.onclick = (e) => {
+                    if (e.target.textContent === "🗑️") { favorites.splice(i, 1); save(); return; }
+                    navigator.clipboard.writeText(f.coord);
+                    if (navigator.vibrate) navigator.vibrate(30);
+                };
+                favDiv.appendChild(d);
+            });
+        }
+        function makeCoord(coord, title) {
+            const div = document.createElement("div");
+            div.className = "coord";
+            div.innerHTML = `<span style="float:right;font-size:24px">☆</span>📍 ${coord}`;
+            div.onclick = async (e) => {
+                if (e.target.textContent === "☆") {
+                    const name = prompt("收藏名稱：", title) || title || coord;
+                    favorites.push({ name, coord });
+                    save();
+                    e.target.textContent = "★";
+                    return;
+                }
+                await navigator.clipboard.writeText(coord);
+                if (navigator.vibrate) navigator.vibrate(30);
+                div.classList.add("copied");
+                const old = div.innerHTML;
+                div.innerHTML = "✅ 已複製：" + coord;
+                setTimeout(() => { div.innerHTML = old; div.classList.remove("copied"); }, 800);
+            };
+            return div;
+        }
+        function generate() {
+            output.innerHTML = "";
+            let current = "";
+            input.value.split(/\r?\n/).forEach(line => {
+                line = line.trim(); if (!line) return;
+                const m = line.match(/(?:[（(]\s*)?([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)(?:\s*[）)])?/);
+                if (m) {
+                    output.appendChild(makeCoord(m[1] + ", " + m[2], current));
+                } else {
+                    current = line;
+                    const t = document.createElement("div");
+                    t.className = "category";
+                    t.textContent = line;
+                    output.appendChild(t);
+                }
+            });
+        }
+    </script>
 
 </body>
+
 </html>
