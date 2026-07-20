@@ -3,138 +3,736 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>座標快速複製</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>座標快速複製 V3</title>
 
     <style>
+        :root {
+            --primary-color: #007aff;
+            --success-color: #28a745;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --border-radius: 12px;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            margin: 20px;
-            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: var(--bg-color);
+            color: #333;
+            padding-bottom: 80px;
+            /* 為底部按鈕留白 */
         }
 
         h1 {
             text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        /* 區塊樣式 */
+        .section {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
         textarea {
             width: 100%;
-            height: 250px;
+            height: 150px;
             font-size: 16px;
-            padding: 10px;
+            padding: 12px;
             box-sizing: border-box;
-            border-radius: 10px;
-            border: 1px solid #ccc;
+            border-radius: var(--border-radius);
+            border: 1px solid #ddd;
+            outline: none;
+            resize: none;
         }
 
-        .category {
-            margin-top: 30px;
-            font-size: 24px;
+        /* 群組與分類 */
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding: 10px 5px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .category-title {
+            font-size: 20px;
             font-weight: bold;
+            color: #444;
         }
 
-        .coord {
+        .btn-save-group {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* 座標卡片 */
+        .coord-item {
             background: white;
             padding: 15px;
-            margin-top: 8px;
-            border-radius: 10px;
+            margin-top: 10px;
+            border-radius: var(--border-radius);
+            border: 1px solid #eee;
             cursor: pointer;
-            font-size: 20px;
+            transition: all 0.2s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .coord-item-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .coord-item:active {
+            transform: scale(0.98);
+        }
+
+        .coord-item.is-copied {
+            background: #d4edda !important;
+            border-color: #c3e6cb;
+        }
+
+        .coord-val {
+            font-family: monospace;
+            font-size: 18px;
+            color: #555;
+            margin-top: 5px;
+        }
+
+        .coord-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .btn-save-item {
+            background: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 13px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        /* 進度條 */
+        .progress-container {
+            width: 100%;
+            background: #eee;
+            height: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--success-color);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* 收藏區 */
+        .fav-group {
+            border: 1px solid #eee;
+            border-radius: var(--border-radius);
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .fav-header {
+            background: #fff;
+            padding: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f9f9f9;
+        }
+
+        .fav-content {
+            display: none;
+            padding: 10px;
+            background: #fafafa;
+        }
+
+        .fav-group.is-open .fav-content {
+            display: block;
+        }
+
+        .fav-group.is-open .arrow {
+            transform: rotate(90deg);
+        }
+
+        .arrow {
+            transition: transform 0.2s;
+            font-size: 12px;
+        }
+
+        /* 底部固定按鈕 */
+        .control-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .btn-next {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-clear {
+            background: #6c757d;
+            color: white;
+        }
+
+        .tag-count {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .delete-group {
+            color: #ff3b30;
+            font-size: 18px;
+            padding: 5px;
+        }
+
+        .dialog-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 200;
+        }
+
+        .dialog-overlay.is-open {
+            display: flex;
+        }
+
+        .dialog-box {
+            width: 100%;
+            max-width: 360px;
+            background: #fff;
+            border-radius: var(--border-radius);
+            padding: 18px;
+            box-sizing: border-box;
+        }
+
+        .dialog-box h3 {
+            margin: 0 0 12px;
+            font-size: 18px;
+        }
+
+        .dialog-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .dialog-field {
+            width: 100%;
+            padding: 10px 12px;
+            box-sizing: border-box;
             border: 1px solid #ddd;
-            transition: .2s;
+            border-radius: 10px;
+            font-size: 15px;
+            margin-top: 8px;
         }
 
-        .coord:hover {
-            background: #e8f4ff;
-        }
-
-        .copied {
-            background: #c8ffd2 !important;
+        .dialog-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
         }
     </style>
-
 </head>
 
 <body>
 
-    <h1>📍 座標快速複製</h1>
+    <h1>📍 座標快速複製 V3</h1>
 
-    <div id="favoritesSection" style="display:none">
-        <h2>⭐ 我的收藏</h2>
-        <div id="favorites"></div>
-        <hr>
+    <!-- 收藏區 -->
+    <div id="favoritesSection" class="section" style="display:none">
+        <h2 style="margin-top:0">⭐ 我的收藏</h2>
+        <div id="favoritesList"></div>
     </div>
 
-    <textarea id="input" placeholder="直接貼上座標..."></textarea>
+    <!-- 輸入區 -->
+    <div class="section">
+        <textarea id="inputField" placeholder="貼上 Discord 座標文字..."></textarea>
+    </div>
 
-    <div id="output"></div>
+    <!-- 輸出區 -->
+    <div id="outputArea"></div>
+
+    <!-- 底部控制 -->
+    <div class="control-bar">
+        <button class="btn btn-clear" onclick="App.clearMarkers()">🧹 清除標記</button>
+        <button class="btn btn-next" onclick="App.scrollToNext()">➡ 下一個未複製</button>
+    </div>
+
+    <div id="saveDialog" class="dialog-overlay">
+        <div class="dialog-box">
+            <h3>加入到收藏</h3>
+
+            <label class="dialog-option">
+                <input type="radio" name="saveTargetType" value="new" checked onchange="App.onSaveTargetTypeChange()">
+                <span>建立新群組</span>
+            </label>
+            <input id="newGroupName" class="dialog-field" type="text" placeholder="群組名稱">
+
+            <label class="dialog-option">
+                <input type="radio" name="saveTargetType" value="existing" onchange="App.onSaveTargetTypeChange()">
+                <span>加入已存在群組</span>
+            </label>
+            <select id="existingGroupSelect" class="dialog-field" style="display:none"></select>
+
+            <div class="dialog-actions">
+                <button class="btn btn-clear" onclick="App.closeSaveDialog()">取消</button>
+                <button class="btn btn-next" onclick="App.confirmSave()">確認</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        const input = document.getElementById("input");
-        const output = document.getElementById("output");
-        const favDiv = document.getElementById("favorites");
-        const favSec = document.getElementById("favoritesSection");
-        let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+        /**
+         * Storage 模組: 處理 LocalStorage
+         */
+        const Storage = {
+            SAVE_KEY: "coord_tool_v3_favs",
+            getFavorites() {
+                return JSON.parse(localStorage.getItem(this.SAVE_KEY) || "[]");
+            },
+            saveFavorites(data) {
+                localStorage.setItem(this.SAVE_KEY, JSON.stringify(data));
+            }
+        };
 
-        renderFavorites();
-        input.addEventListener("input", generate);
+        /**
+         * Parser 模組: 處理文字解析
+         */
+        const Parser = {
+            parse(text) {
+                const lines = text.split(/\r?\n/);
+                const groups = [];
+                let currentGroupName = "預設分類";
+                let currentItems = [];
 
-        function save() { localStorage.setItem("favorites", JSON.stringify(favorites)); renderFavorites(); }
-        function renderFavorites() {
-            favDiv.innerHTML = "";
-            favSec.style.display = favorites.length ? "block" : "none";
-            favorites.forEach((f, i) => {
-                const d = document.createElement("div");
-                d.className = "coord";
-                d.innerHTML = `⭐ <b>${f.name}</b><br>📍 ${f.coord} <span style="float:right">🗑️</span>`;
-                d.onclick = (e) => {
-                    if (e.target.textContent === "🗑️") { favorites.splice(i, 1); save(); return; }
-                    navigator.clipboard.writeText(f.coord);
+                lines.forEach(line => {
+                    const trimmed = line.trim();
+                    if (!trimmed) return;
+
+                    // 匹配座標格式 (12.34, 56.78)
+                    const coordMatch = trimmed.match(/(?:[（(]\s*)?([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)(?:\s*[）)])?/);
+
+                    if (coordMatch) {
+                        currentItems.push({
+                            id: Date.now() + Math.random(),
+                            name: trimmed.split(/[（(]|\d/)[0].trim() || (currentItems.length + 1) + ". 座標",
+                            coord: `${coordMatch[1]}, ${coordMatch[2]}`,
+                            copied: false
+                        });
+                    } else {
+                        // 如果有舊的資料，先存入
+                        if (currentItems.length > 0) {
+                            groups.push({ title: currentGroupName, items: currentItems });
+                            currentItems = [];
+                        }
+                        currentGroupName = trimmed;
+                    }
+                });
+
+                if (currentItems.length > 0) {
+                    groups.push({ title: currentGroupName, items: currentItems });
+                }
+                return groups;
+            }
+        };
+
+        /**
+         * Clipboard 模組
+         */
+        const Clipboard = {
+            async copy(text) {
+                try {
+                    await navigator.clipboard.writeText(text);
                     if (navigator.vibrate) navigator.vibrate(30);
-                };
-                favDiv.appendChild(d);
-            });
-        }
-        function makeCoord(coord, title) {
-            const div = document.createElement("div");
-            div.className = "coord";
-            div.innerHTML = `<span style="float:right;font-size:24px">☆</span>📍 ${coord}`;
-            div.onclick = async (e) => {
-                if (e.target.textContent === "☆") {
-                    const name = prompt("收藏名稱：", title) || title || coord;
-                    favorites.push({ name, coord });
-                    save();
-                    e.target.textContent = "★";
+                    return true;
+                } catch (err) {
+                    console.error("複製失敗", err);
+                    return false;
+                }
+            }
+        };
+
+        /**
+         * UI 與 App 核心邏輯
+         */
+        const App = {
+            groups: [], // 目前顯示在畫面上的資料
+            favorites: [],
+
+            // ===== 收藏 Dialog 用 =====
+            saveMode: "",          // "single" 或 "group"
+            selectedItem: null,    // 單筆收藏時使用
+            selectedGroup: null,   // 整組收藏時使用
+            saveTargetType: "new",
+
+            init() {
+                this.favorites = Storage.getFavorites();
+                this.renderFavorites();
+
+                document.getElementById('inputField').addEventListener('input', (e) => {
+                    this.groups = Parser.parse(e.target.value);
+                    this.renderMain();
+                });
+
+                document.getElementById('saveDialog').addEventListener('click', (e) => {
+                    if (e.target.id === 'saveDialog') this.closeSaveDialog();
+                });
+            },
+
+            // 收藏功能
+            saveGroup(index) {
+                this.openSaveDialog("group", this.groups[index]);
+            },
+
+            saveSingle(item, groupObj, e) {
+                e.stopPropagation();
+                this.openSaveDialog("single", { item, groupObj });
+            },
+
+            openSaveDialog(mode, payload) {
+                this.saveMode = mode;
+                this.selectedItem = mode === "single" ? payload.item : null;
+                this.selectedGroup = mode === "group" ? payload : payload.groupObj;
+                this.saveTargetType = "new";
+
+                const dialog = document.getElementById('saveDialog');
+                const newGroupName = document.getElementById('newGroupName');
+                const existingGroupSelect = document.getElementById('existingGroupSelect');
+                const newRadio = document.querySelector('input[name="saveTargetType"][value="new"]');
+                const existingRadio = document.querySelector('input[name="saveTargetType"][value="existing"]');
+
+                newGroupName.value = "";
+                existingGroupSelect.innerHTML = this.favorites
+                    .map((group, index) => `<option value="${index}">${group.title}</option>`)
+                    .join("");
+
+                newRadio.checked = true;
+                existingRadio.checked = false;
+                existingRadio.disabled = this.favorites.length === 0;
+
+                this.onSaveTargetTypeChange();
+                dialog.classList.add('is-open');
+                newGroupName.focus();
+            },
+
+            closeSaveDialog() {
+                document.getElementById('saveDialog').classList.remove('is-open');
+                this.saveMode = "";
+                this.selectedItem = null;
+                this.selectedGroup = null;
+                this.saveTargetType = "new";
+            },
+
+            onSaveTargetTypeChange() {
+                const selected = document.querySelector('input[name="saveTargetType"]:checked');
+                this.saveTargetType = selected ? selected.value : "new";
+
+                document.getElementById('newGroupName').style.display = this.saveTargetType === "new" ? "block" : "none";
+                document.getElementById('existingGroupSelect').style.display = this.saveTargetType === "existing" ? "block" : "none";
+            },
+
+            confirmSave() {
+                const itemsToAdd = this.saveMode === "group"
+                    ? this.selectedGroup.items
+                    : [this.selectedItem];
+
+                let targetGroup = null;
+
+                if (this.saveTargetType === "new") {
+                    const title = document.getElementById('newGroupName').value.trim();
+                    if (!title) {
+                        alert("請輸入群組名稱");
+                        return;
+                    }
+                    targetGroup = { title, items: [] };
+                    this.favorites.push(targetGroup);
+                } else {
+                    const index = Number(document.getElementById('existingGroupSelect').value);
+                    targetGroup = this.favorites[index];
+                    if (!targetGroup) {
+                        alert("請選擇收藏群組");
+                        return;
+                    }
+                }
+
+                let addedCount = 0;
+                itemsToAdd.forEach(item => {
+                    if (targetGroup.items.some(savedItem => savedItem.coord === item.coord)) return;
+                    targetGroup.items.push({
+                        id: Date.now() + Math.random(),
+                        name: item.name,
+                        coord: item.coord,
+                        copied: false
+                    });
+                    addedCount++;
+                });
+
+                Storage.saveFavorites(this.favorites);
+                this.renderFavorites();
+                this.closeSaveDialog();
+
+                if (addedCount === 0) {
+                    alert("相同座標已存在，已略過。");
                     return;
                 }
-                await navigator.clipboard.writeText(coord);
-                if (navigator.vibrate) navigator.vibrate(30);
-                div.classList.add("copied");
-                const old = div.innerHTML;
-                div.innerHTML = "✅ 已複製：" + coord;
-                setTimeout(() => { div.innerHTML = old; div.classList.remove("copied"); }, 800);
-            };
-            return div;
-        }
-        function generate() {
-            output.innerHTML = "";
-            let current = "";
-            input.value.split(/\r?\n/).forEach(line => {
-                line = line.trim(); if (!line) return;
-                const m = line.match(/(?:[（(]\s*)?([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)(?:\s*[）)])?/);
-                if (m) {
-                    output.appendChild(makeCoord(m[1] + ", " + m[2], current));
-                } else {
-                    current = line;
-                    const t = document.createElement("div");
-                    t.className = "category";
-                    t.textContent = line;
-                    output.appendChild(t);
-                }
-            });
-        }
-    </script>
 
+                alert(`已加入 ${targetGroup.title} 群組`);
+            },
+
+            deleteFavorite(index, e) {
+                e.stopPropagation();
+                if (confirm("確定刪除此收藏群組？")) {
+                    this.favorites.splice(index, 1);
+                    Storage.saveFavorites(this.favorites);
+                    this.renderFavorites();
+                }
+            },
+
+            toggleFavoriteOpen(index) {
+                const el = document.getElementById(`fav-group-${index}`);
+                el.classList.toggle('is-open');
+            },
+
+            // 核心複製邏輯
+            async handleCopy(item, element, groupObj) {
+                const success = await Clipboard.copy(item.coord);
+                if (success) {
+                    item.copied = true;
+                    element.classList.add('is-copied');
+                    this.updateProgress(groupObj);
+                }
+            },
+
+            updateProgress(groupObj) {
+                if (!groupObj) return;
+                const total = groupObj.items.length;
+                const copiedCount = groupObj.items.filter(i => i.copied).length;
+                const percent = (copiedCount / total) * 100;
+
+                // 更新畫面上的進度條
+                if (groupObj.progressEl) {
+                    groupObj.progressEl.style.width = percent + "%";
+                }
+                if (groupObj.textEl) {
+                    groupObj.textEl.textContent = `${copiedCount} / ${total}`;
+                }
+            },
+
+            clearMarkers() {
+                // 清除主畫面進度
+                this.groups.forEach(g => g.items.forEach(i => i.copied = false));
+                // 清除收藏區進度
+                this.favorites.forEach(g => g.items.forEach(i => i.copied = false));
+                Storage.saveFavorites(this.favorites);
+
+                this.renderMain();
+                this.renderFavorites();
+            },
+
+            scrollToNext() {
+                const next = document.querySelector('.coord-item:not(.is-copied)');
+                if (next) {
+                    const offset = 100;
+                    const bodyRect = document.body.getBoundingClientRect().top;
+                    const elementRect = next.getBoundingClientRect().top;
+                    const elementPosition = elementRect - bodyRect;
+                    const offsetPosition = elementPosition - offset;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                } else {
+                    alert("全部都複製完囉！");
+                }
+            },
+
+            // 渲染主工作區
+            renderMain() {
+                const container = document.getElementById('outputArea');
+                container.innerHTML = "";
+
+                this.groups.forEach((group, gIdx) => {
+                    const section = document.createElement('div');
+                    section.className = 'section';
+
+                    // Header
+                    const header = document.createElement('div');
+                    header.className = 'category-header';
+                    header.innerHTML = `
+                        <div class="category-title">${group.title}</div>
+                        <button class="btn-save-group" onclick="App.saveGroup(${gIdx})">⭐ 收藏群組</button>
+                    `;
+                    section.appendChild(header);
+
+                    // Progress
+                    const { bar, text } = this.createProgressBar(group);
+                    group.progressEl = bar;
+                    group.textEl = text;
+                    section.appendChild(this.createProgressContainer(bar, text));
+
+                    // Items
+                    group.items.forEach(item => {
+                        const itemEl = this.createCoordElement(item, group);
+                        section.appendChild(itemEl);
+                    });
+
+                    container.appendChild(section);
+                });
+            },
+
+            // 渲染收藏區
+            renderFavorites() {
+                const container = document.getElementById('favoritesList');
+                const sec = document.getElementById('favoritesSection');
+
+                if (this.favorites.length === 0) {
+                    sec.style.display = "none";
+                    return;
+                }
+                sec.style.display = "block";
+                container.innerHTML = "";
+
+                this.favorites.forEach((group, fIdx) => {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'fav-group';
+                    groupDiv.id = `fav-group-${fIdx}`;
+
+                    const copiedCount = group.items.filter(i => i.copied).length;
+
+                    const header = document.createElement('div');
+                    header.className = 'fav-header';
+                    header.onclick = () => this.toggleFavoriteOpen(fIdx);
+                    header.innerHTML = `
+                        <div>
+                            <div style="font-weight:bold">📂 ${group.title}</div>
+                            <div class="tag-count">${group.items.length} 個座標 | <span id="fav-count-${fIdx}">${copiedCount} / ${group.items.length}</span></div>
+                        </div>
+                        <div style="display:flex; align-items:center">
+                            <span class="delete-group" onclick="App.deleteFavorite(${fIdx}, event)">🗑️</span>
+                            <span class="arrow" style="margin-left:10px">▶</span>
+                        </div>
+                    `;
+                    groupDiv.appendChild(header);
+
+                    const content = document.createElement('div');
+                    content.className = 'fav-content';
+
+                    const { bar, text } = this.createProgressBar(group);
+                    group.progressEl = bar;
+                    group.textEl = text;
+                    // 覆蓋 text 指向，因為收藏區的進度文字在 Header 裡
+                    group.textEl = header.querySelector(`#fav-count-${fIdx}`);
+
+                    content.appendChild(this.createProgressContainer(bar, null));
+
+                    group.items.forEach(item => {
+                        const itemEl = this.createCoordElement(item, group, true);
+                        content.appendChild(itemEl);
+                    });
+
+                    groupDiv.appendChild(content);
+                    container.appendChild(groupDiv);
+
+                    this.updateProgress(group); // 初始化進度
+                });
+            },
+
+            // UI 組件 Helper
+            createProgressBar(group) {
+                const bar = document.createElement('div');
+                bar.className = 'progress-bar';
+                const text = document.createElement('div');
+                text.className = 'tag-count';
+                return { bar, text };
+            },
+
+            createProgressContainer(bar, textEl) {
+                const wrap = document.createElement('div');
+                const pContainer = document.createElement('div');
+                pContainer.className = 'progress-container';
+                pContainer.appendChild(bar);
+                wrap.appendChild(pContainer);
+                if (textEl) wrap.appendChild(textEl);
+                return wrap;
+            },
+
+            createCoordElement(item, groupObj, isFav = false) {
+                const el = document.createElement('div');
+                el.className = `coord-item ${item.copied ? 'is-copied' : ''}`;
+                el.innerHTML = `
+                    <div class="coord-item-top">
+                        <div class="coord-name">${item.name}</div>
+                        ${isFav ? '' : '<button class="btn-save-item" type="button">⭐</button>'}
+                    </div>
+                    <div class="coord-val">📍 ${item.coord}</div>
+                `;
+                if (!isFav) {
+                    el.querySelector('.btn-save-item').onclick = (e) => this.saveSingle(item, groupObj, e);
+                }
+                el.onclick = () => {
+                    this.handleCopy(item, el, groupObj);
+                    if (isFav) Storage.saveFavorites(this.favorites);
+                };
+                return el;
+            }
+        };
+
+        // 啟動
+        App.init();
+    </script>
 </body>
 
 </html>
