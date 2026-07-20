@@ -131,6 +131,17 @@
             flex-shrink: 0;
         }
 
+        .btn-reset {
+            background: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 13px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
         /* 進度條 */
         .progress-container {
             width: 100%;
@@ -306,8 +317,7 @@
 
     <!-- 底部控制 -->
     <div class="control-bar">
-        <button class="btn btn-clear" onclick="App.clearMarkers()">🧹 清除標記</button>
-        <button class="btn btn-next" onclick="App.scrollToNext()">➡ 下一個未複製</button>
+        <button class="btn btn-clear" onclick="App.clearInput()">🗑 清空輸入</button>
     </div>
 
     <div id="saveDialog" class="dialog-overlay">
@@ -365,9 +375,23 @@
                     const coordMatch = trimmed.match(/(?:[（(]\s*)?([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)(?:\s*[）)])?/);
 
                     if (coordMatch) {
+
+                        // 把座標從原字串移除
+                        let name = trimmed
+                            .replace(coordMatch[0], "")
+                            .replace(/[()（）]/g, "")
+                            .replace(/[-,]/g, " ")
+                            .replace(/\s+/g, " ")
+                            .trim();
+
+                        // 如果座標前後都沒有名稱，就使用預設名稱
+                        if (!name) {
+                            name = (currentItems.length + 1) + ". 座標";
+                        }
+
                         currentItems.push({
                             id: Date.now() + Math.random(),
-                            name: trimmed.split(/[（(]|\d/)[0].trim() || (currentItems.length + 1) + ". 座標",
+                            name: name,
                             coord: `${coordMatch[1]}, ${coordMatch[2]}`,
                             copied: false
                         });
@@ -551,8 +575,24 @@
                 if (success) {
                     item.copied = true;
                     element.classList.add('is-copied');
+                    const nameEl = element.querySelector('.coord-name');
+                    if (nameEl) {
+                        nameEl.textContent = `✅ ${item.name}`;
+                    }
                     this.updateProgress(groupObj);
                 }
+            },
+
+            resetCopied(item, element, groupObj, isFav, e) {
+                e.stopPropagation();
+                item.copied = false;
+                element.classList.remove('is-copied');
+                const nameEl = element.querySelector('.coord-name');
+                if (nameEl) {
+                    nameEl.textContent = item.name;
+                }
+                this.updateProgress(groupObj);
+                if (isFav) Storage.saveFavorites(this.favorites);
             },
 
             updateProgress(groupObj) {
@@ -579,6 +619,12 @@
 
                 this.renderMain();
                 this.renderFavorites();
+            },
+
+            clearInput() {
+                document.getElementById("inputField").value = "";
+                this.groups = [];
+                this.renderMain();
             },
 
             scrollToNext() {
@@ -714,18 +760,24 @@
                 el.className = `coord-item ${item.copied ? 'is-copied' : ''}`;
                 el.innerHTML = `
                     <div class="coord-item-top">
-                        <div class="coord-name">${item.name}</div>
-                        ${isFav ? '' : '<button class="btn-save-item" type="button">⭐</button>'}
+                        <div class="coord-name">${item.copied ? "✅ " : ""}${item.name}</div>
+                        <div style="display:flex;gap:6px;">
+                            ${isFav ? '' : '<button class="btn-save-item" type="button">⭐</button>'}
+                            <button class="btn-reset" type="button">↺</button>
+                        </div>
                     </div>
                     <div class="coord-val">📍 ${item.coord}</div>
                 `;
                 if (!isFav) {
                     el.querySelector('.btn-save-item').onclick = (e) => this.saveSingle(item, groupObj, e);
                 }
+                el.querySelector('.btn-reset').onclick = (e) => this.resetCopied(item, el, groupObj, isFav, e);
+
                 el.onclick = () => {
                     this.handleCopy(item, el, groupObj);
                     if (isFav) Storage.saveFavorites(this.favorites);
                 };
+
                 return el;
             }
         };
