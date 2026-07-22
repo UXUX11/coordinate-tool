@@ -423,11 +423,25 @@
                 let currentItems = [];
 
                 lines.forEach(line => {
-                    const trimmed = line.trim();
+                    let trimmed = line.trim();
+
+                    // 全形括號 → 半形
+                    trimmed = trimmed
+                        .replace(/（/g, "(")
+                        .replace(/）/g, ")");
+
+                    // 中文逗號 → 英文
+                    trimmed = trimmed.replace(/，/g, ",");
+
+                    // Slash → 逗號
+                    trimmed = trimmed.replace(/\//g, ",");
+
+                    // 多個空白變一個
+                    trimmed = trimmed.replace(/([+-]?\d+\.\d+)\s+([+-]?\d+\.\d+)/,"$1,$2");
                     if (!trimmed) return;
 
                     // 匹配座標格式 (12.34, 56.78)
-                    const coordMatch = trimmed.match(/(?:[（(]\s*)?([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)(?:\s*[）)])?/);
+                    const coordMatch = trimmed.match(/(?:[（(]\s*)?([+-]?\d+(?:\.\d+)?)\s*[，,]\s*([+-]?\d+(?:\.\d+)?)(?:\s*[）)])?/);
 
                     if (coordMatch) {
 
@@ -499,6 +513,7 @@
             editingItem: null,
             editingGroup: null,
             editingIsFav: false,
+            lastOpenFavoriteIndex: -1,
 
             init() {
                 this.favorites = Storage.getFavorites();
@@ -705,8 +720,17 @@
             },
 
             toggleFavoriteOpen(index) {
+
                 const el = document.getElementById(`fav-group-${index}`);
+
                 el.classList.toggle('is-open');
+
+                if (el.classList.contains('is-open')) {
+                    this.lastOpenFavoriteIndex = index;
+                } else {
+                    this.lastOpenFavoriteIndex = -1;
+                }
+
             },
 
             // 核心複製邏輯
@@ -743,8 +767,6 @@
                 groupObj.items.forEach(item => {
                     item.copied = false;
                 });
-
-                this.updateProgress(groupObj);
 
                 if (isFav) {
                     Storage.saveFavorites(this.favorites);
@@ -910,7 +932,11 @@
                     groupDiv.appendChild(content);
                     container.appendChild(groupDiv);
 
-                    this.updateProgress(group); // 初始化進度
+                    if (this.lastOpenFavoriteIndex === fIdx) {
+                        groupDiv.classList.add("is-open");
+                    }
+
+                    this.updateProgress(group);
                 });
             },
 
