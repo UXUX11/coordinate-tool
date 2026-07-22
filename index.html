@@ -131,6 +131,18 @@
             flex-shrink: 0;
         }
 
+
+        .btn-edit {
+            background: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 13px;
+            cursor: pointer;
+            flex-shrink: 0;
+}
+
         .btn-reset {
             background: transparent;
             color: var(--primary-color);
@@ -343,6 +355,49 @@
         </div>
     </div>
 
+
+    <div id="editDialog" class="dialog-overlay">
+        <div class="dialog-box">
+
+            <h3>編輯座標</h3>
+
+            <input
+                id="editName"
+                class="dialog-field"
+                placeholder="名稱">
+
+            <input
+                id="editCoord"
+                class="dialog-field"
+                placeholder="座標">
+
+            <div class="dialog-actions">
+
+
+                <button
+                    class="btn"
+                    style="background:#dc3545;color:white"
+                    onclick="App.deleteItem()">
+                    🗑 刪除
+                </button>
+
+                <button
+                    class="btn btn-clear"
+                    onclick="App.closeEditDialog()">
+                    取消
+                </button>
+
+                <button
+                    class="btn btn-next"
+                    onclick="App.saveEdit()">
+                    儲存
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+
     <script>
         /**
          * Storage 模組: 處理 LocalStorage
@@ -436,10 +491,14 @@
             favorites: [],
 
             // ===== 收藏 Dialog 用 =====
-            saveMode: "",          // "single" 或 "group"
-            selectedItem: null,    // 單筆收藏時使用
-            selectedGroup: null,   // 整組收藏時使用
+            saveMode: "",
+            selectedItem: null,
+            selectedGroup: null,
             saveTargetType: "new",
+
+            editingItem: null,
+            editingGroup: null,
+            editingIsFav: false,
 
             init() {
                 this.favorites = Storage.getFavorites();
@@ -555,6 +614,87 @@
                 alert(`已加入 ${targetGroup.title} 群組`);
             },
 
+
+
+            openEditDialog(item, groupObj, isFav, e) {
+
+                e.stopPropagation();
+
+                this.editingItem = item;
+                this.editingGroup = groupObj;
+                this.editingIsFav = isFav;
+
+                document.getElementById("editName").value = item.name;
+                document.getElementById("editCoord").value = item.coord;
+
+                document
+                    .getElementById("editDialog")
+                    .classList.add("is-open");
+
+            },
+
+            closeEditDialog() {
+
+                document
+                    .getElementById("editDialog")
+                    .classList.remove("is-open");
+
+            },
+
+            saveEdit() {
+
+                this.editingItem.name =
+                    document.getElementById("editName").value.trim();
+
+                this.editingItem.coord =
+                    document.getElementById("editCoord").value.trim();
+
+                if (this.editingIsFav) {
+
+                    Storage.saveFavorites(this.favorites);
+
+                    this.renderFavorites();
+
+                } else {
+
+                    this.renderMain();
+
+                }
+
+                this.closeEditDialog();
+
+            },
+
+
+            deleteItem() {
+
+                if (!confirm("確定刪除此座標？"))
+                    return;
+
+                const list = this.editingGroup.items;
+
+                const index = list.indexOf(this.editingItem);
+
+                if (index >= 0) {
+                    list.splice(index, 1);
+                }
+
+                if (this.editingIsFav) {
+
+                    Storage.saveFavorites(this.favorites);
+
+                    this.renderFavorites();
+
+                } else {
+
+                    this.renderMain();
+
+                }
+
+                this.closeEditDialog();
+
+            },
+
             deleteFavorite(index, e) {
                 e.stopPropagation();
                 if (confirm("確定刪除此收藏群組？")) {
@@ -593,6 +733,26 @@
                 }
                 this.updateProgress(groupObj);
                 if (isFav) Storage.saveFavorites(this.favorites);
+            },
+
+
+            resetGroup(groupObj, isFav, e) {
+
+                if (e) e.stopPropagation();
+
+                groupObj.items.forEach(item => {
+                    item.copied = false;
+                });
+
+                this.updateProgress(groupObj);
+
+                if (isFav) {
+                    Storage.saveFavorites(this.favorites);
+                    this.renderFavorites();
+                } else {
+                    this.renderMain();
+                }
+
             },
 
             updateProgress(groupObj) {
@@ -667,7 +827,17 @@
                     const { bar, text } = this.createProgressBar(group);
                     group.progressEl = bar;
                     group.textEl = text;
-                    section.appendChild(this.createProgressContainer(bar, text));
+
+                    const progress = this.createProgressContainer(bar, text);
+
+                    const btn = document.createElement("button");
+                    btn.className = "btn-reset";
+                    btn.textContent = "🔄 全部";
+                    btn.onclick = (e) => this.resetGroup(group, false, e);
+
+                    progress.appendChild(btn);
+
+                    section.appendChild(progress);
 
                     // Items
                     group.items.forEach(item => {
@@ -722,8 +892,16 @@
                     // 覆蓋 text 指向，因為收藏區的進度文字在 Header 裡
                     group.textEl = header.querySelector(`#fav-count-${fIdx}`);
 
-                    content.appendChild(this.createProgressContainer(bar, null));
+                    const progress = this.createProgressContainer(bar, null);
 
+                    const btn = document.createElement("button");
+                    btn.className = "btn-reset";
+                    btn.textContent = "🔄 全部";
+                    btn.onclick = (e) => this.resetGroup(group, true, e);
+
+                    progress.appendChild(btn);
+
+                    content.appendChild(progress);
                     group.items.forEach(item => {
                         const itemEl = this.createCoordElement(item, group, true);
                         content.appendChild(itemEl);
@@ -746,13 +924,30 @@
             },
 
             createProgressContainer(bar, textEl) {
-                const wrap = document.createElement('div');
-                const pContainer = document.createElement('div');
-                pContainer.className = 'progress-container';
+
+                const wrap = document.createElement("div");
+
+                const row = document.createElement("div");
+                row.style.display = "flex";
+                row.style.alignItems = "center";
+                row.style.gap = "10px";
+
+                const pContainer = document.createElement("div");
+                pContainer.className = "progress-container";
+                pContainer.style.flex = "1";
+
                 pContainer.appendChild(bar);
-                wrap.appendChild(pContainer);
-                if (textEl) wrap.appendChild(textEl);
+
+                row.appendChild(pContainer);
+
+                wrap.appendChild(row);
+
+                if (textEl) {
+                    wrap.appendChild(textEl);
+                }
+
                 return wrap;
+
             },
 
             createCoordElement(item, groupObj, isFav = false) {
@@ -763,15 +958,22 @@
                         <div class="coord-name">${item.copied ? "✅ " : ""}${item.name}</div>
                         <div style="display:flex;gap:6px;">
                             ${isFav ? '' : '<button class="btn-save-item" type="button">⭐</button>'}
+                            <button class="btn-edit" type="button">✏️</button>
                             <button class="btn-reset" type="button">↺</button>
                         </div>
                     </div>
                     <div class="coord-val">📍 ${item.coord}</div>
                 `;
                 if (!isFav) {
-                    el.querySelector('.btn-save-item').onclick = (e) => this.saveSingle(item, groupObj, e);
+                    el.querySelector('.btn-save-item').onclick =
+                        (e) => this.saveSingle(item, groupObj, e);
                 }
-                el.querySelector('.btn-reset').onclick = (e) => this.resetCopied(item, el, groupObj, isFav, e);
+
+                el.querySelector('.btn-edit').onclick =
+                    (e) => this.openEditDialog(item, groupObj, isFav, e);
+
+                el.querySelector('.btn-reset').onclick =
+                    (e) => this.resetCopied(item, el, groupObj, isFav, e);
 
                 el.onclick = () => {
                     this.handleCopy(item, el, groupObj);
