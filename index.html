@@ -1332,41 +1332,90 @@
 
             createCoordElement(item, groupObj, isFav = false) {
                 const el = document.createElement('div');
-                el.className = `coord-item ${item.copied ? 'is-copied' : ''}`;
-                el.innerHTML = `
-                    <div class="coord-item-top">
-                        <div class="coord-name">${item.copied ? "✅ " : ""}${item.name}</div>
-                        <div style="display:flex;gap:6px;">
-                            ${isFav ? '' : '<button class="btn-save-item" type="button">⭐</button>'}
-                            <button class="btn-reset btn-up" type="button">↑</button>
-                            <button class="btn-reset btn-down" type="button">↓</button>
-                            <button class="btn-edit" type="button">✏️</button>
-                            <button class="btn-reset btn-undo" type="button">↺</button>
-                        </div>
-                    </div>
-                    <div class="coord-val">📍 ${item.coord}</div>
-                `;
-                if (!isFav) {
-                    el.querySelector('.btn-save-item').onclick =
-                        (e) => this.saveSingle(item, groupObj, e);
+                el.className = 'coord-item';
+                if (item.copied) {
+                    el.classList.add('is-copied');
                 }
 
-                el.querySelector('.btn-up').onclick =
-                    (e) => this.moveItemUp(item, groupObj, isFav, e);
+                const top = document.createElement('div');
+                top.className = 'coord-item-top';
 
-                el.querySelector('.btn-down').onclick =
-                    (e) => this.moveItemDown(item, groupObj, isFav, e);
+                const name = document.createElement('div');
+                name.className = 'coord-name';
+                name.textContent = `${item.copied ? '✅ ' : ''}${item.name}`;
 
-                el.querySelector('.btn-edit').onclick =
-                    (e) => this.openEditDialog(item, groupObj, isFav, e);
+                const actions = document.createElement('div');
+                actions.style.display = 'flex';
+                actions.style.gap = '6px';
 
-                el.querySelector('.btn-undo').onclick =
-                    (e) => this.resetCopied(item, el, groupObj, isFav, e);
+                if (!isFav) {
+                    const saveBtn = document.createElement('button');
+                    saveBtn.className = 'btn-save-item';
+                    saveBtn.type = 'button';
+                    saveBtn.textContent = '⭐';
+                    saveBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.saveSingle(item, groupObj, e);
+                    });
+                    actions.appendChild(saveBtn);
+                }
 
-                el.onclick = () => {
+                const upBtn = document.createElement('button');
+                upBtn.className = 'btn-reset btn-up';
+                upBtn.type = 'button';
+                upBtn.textContent = '↑';
+                upBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.moveItemUp(item, groupObj, isFav, e);
+                });
+                actions.appendChild(upBtn);
+
+                const downBtn = document.createElement('button');
+                downBtn.className = 'btn-reset btn-down';
+                downBtn.type = 'button';
+                downBtn.textContent = '↓';
+                downBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.moveItemDown(item, groupObj, isFav, e);
+                });
+                actions.appendChild(downBtn);
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn-edit';
+                editBtn.type = 'button';
+                editBtn.textContent = '✏️';
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.openEditDialog(item, groupObj, isFav, e);
+                });
+                actions.appendChild(editBtn);
+
+                const undoBtn = document.createElement('button');
+                undoBtn.className = 'btn-reset btn-undo';
+                undoBtn.type = 'button';
+                undoBtn.textContent = '↺';
+                undoBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.resetCopied(item, el, groupObj, isFav, e);
+                });
+                actions.appendChild(undoBtn);
+
+                top.appendChild(name);
+                top.appendChild(actions);
+
+                const coord = document.createElement('div');
+                coord.className = 'coord-val';
+                coord.textContent = `📍 ${item.coord}`;
+
+                el.appendChild(top);
+                el.appendChild(coord);
+
+                el.addEventListener('click', () => {
                     this.handleCopy(item, el, groupObj);
-                    if (isFav) Storage.saveFavorites(this.favorites);
-                };
+                    if (isFav) {
+                        Storage.saveFavorites(this.favorites);
+                    }
+                });
 
                 return el;
             }
