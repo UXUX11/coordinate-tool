@@ -1341,7 +1341,7 @@
                             <button class="btn-reset btn-up" type="button">↑</button>
                             <button class="btn-reset btn-down" type="button">↓</button>
                             <button class="btn-edit" type="button">✏️</button>
-                            <button class="btn-reset" type="button">↺</button>
+                            <button class="btn-reset btn-undo" type="button">↺</button>
                         </div>
                     </div>
                     <div class="coord-val">📍 ${item.coord}</div>
@@ -1360,7 +1360,7 @@
                 el.querySelector('.btn-edit').onclick =
                     (e) => this.openEditDialog(item, groupObj, isFav, e);
 
-                el.querySelector('.btn-reset').onclick =
+                el.querySelector('.btn-undo').onclick =
                     (e) => this.resetCopied(item, el, groupObj, isFav, e);
 
                 el.onclick = () => {
