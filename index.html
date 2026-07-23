@@ -1221,7 +1221,28 @@
 
                         } else if (file.name.toLowerCase().endsWith(".txt")) {
 
-                            data = Parser.parse(e.target.result);
+                            const groupName = prompt(
+                                "TXT 匯入\n\n請輸入收藏群組名稱：",
+                                "新匯入"
+                            );
+
+                            if (groupName === null)
+                                return;
+
+                            const parsed = Parser.parse(e.target.result);
+
+                            const allItems = [];
+
+                            parsed.forEach(group => {
+                                allItems.push(...group.items);
+                            });
+
+                            data = [
+                                {
+                                    title: groupName.trim() || "新匯入",
+                                    items: allItems
+                                }
+                            ];
 
                         } else {
 
