@@ -716,6 +716,30 @@
 
             },
 
+            editFavoriteTitle(index, e) {
+
+                e.stopPropagation();
+
+                const group = this.favorites[index];
+
+                const title = prompt("請輸入新的群組名稱", group.title);
+
+                if (title === null)
+                    return;
+
+                const newTitle = title.trim();
+
+                if (!newTitle)
+                    return;
+
+                group.title = newTitle;
+
+                Storage.saveFavorites(this.favorites);
+
+                this.renderFavorites();
+
+            },
+
             deleteFavorite(index, e) {
                 e.stopPropagation();
                 if (confirm("確定刪除此收藏群組？")) {
@@ -1026,11 +1050,18 @@
                         <div style="display:flex; align-items:center;gap:8px">
 
                             <span
-                                class="delete-group"
-                                style="font-size:16px"
-                                onclick="App.moveFavoriteUp(${fIdx}, event)">
-                                ↑
-                            </span>
+                            class="delete-group"
+                            style="font-size:16px"
+                            onclick="App.editFavoriteTitle(${fIdx}, event)">
+                            ✏️
+                        </span>
+
+                        <span
+                            class="delete-group"
+                            style="font-size:16px"
+                            onclick="App.moveFavoriteUp(${fIdx}, event)">
+                            ↑
+                        </span>
 
                             <span
                                 class="delete-group"
