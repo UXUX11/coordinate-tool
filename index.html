@@ -349,7 +349,8 @@
 
     </div>
 
-    <input type="file" id="importFile" accept=".json" style="display:none" onchange="App.importFavoritesFile(event)">
+    <input type="file" id="importFile" accept=".json,.txt" style="display:none"
+        onchange="App.importFavoritesFile(event)">
 
     <div id="saveDialog" class="dialog-overlay">
         <div class="dialog-box">
@@ -1203,7 +1204,22 @@
 
                     try {
 
-                        const data = JSON.parse(e.target.result);
+                        let data;
+
+                        if (file.name.toLowerCase().endsWith(".json")) {
+
+                            data = JSON.parse(e.target.result);
+
+                        } else if (file.name.toLowerCase().endsWith(".txt")) {
+
+                            data = Parser.parse(e.target.result);
+
+                        } else {
+
+                            alert("只支援 JSON 或 TXT");
+                            return;
+
+                        }
 
                         let addGroup = 0;
                         let addItem = 0;
@@ -1262,7 +1278,7 @@
 
                         console.error(err);
 
-                        alert("JSON 格式錯誤");
+                        alert("匯入失敗，請確認 JSON 或 TXT 格式是否正確。");
 
                     }
 
