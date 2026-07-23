@@ -186,7 +186,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #f9f9f9;
+            gap: 10px;
         }
 
         .fav-content {
@@ -1044,9 +1044,18 @@
                     header.className = 'fav-header';
                     header.onclick = () => this.toggleFavoriteOpen(fIdx);
                     header.innerHTML = `
-                        <div>
-                            <div style="font-weight:bold">📂 ${group.title}</div>
-                            <div class="tag-count">${group.items.length} 個座標 | <span id="fav-count-${fIdx}">${copiedCount} / ${group.items.length}</span></div>
+                        <div style="
+                            flex:1;
+                            min-width:0;
+                        ">
+                            <div style="
+                                font-weight:bold;
+                                white-space:nowrap;
+                                overflow:hidden;
+                                text-overflow:ellipsis;
+                            ">
+                                📂 ${group.title}
+                            </div>
                         </div>
                         <div style="display:flex; align-items:center;gap:8px">
 
