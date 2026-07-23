@@ -1048,29 +1048,28 @@
                     header.className = 'fav-header';
                     header.onclick = () => this.toggleFavoriteOpen(fIdx);
                     header.innerHTML = `
+                    <div style="
+                        flex:1;
+                        min-width:0;
+                    ">
                         <div style="
-                            display:flex;
-                            align-items:center;
+                            font-weight:bold;
+                            white-space:nowrap;
+                            overflow:hidden;
+                            text-overflow:ellipsis;
                         ">
-
-                            <span style="flex-shrink:0;">📂&nbsp;</span>
-
-                            <div style="
-                                flex:1;
-                                overflow-x:auto;
-                                white-space:nowrap;
-                                scrollbar-width:none;
-                                -ms-overflow-style:none;
-                            ">
-                                ${group.title}
-                            </div>
-
+                            📂 ${group.title}
                         </div>
-
                     </div>
-                        <div style="display:flex; align-items:center;gap:8px">
 
-                            <span
+                    <div style="
+                        display:flex;
+                        align-items:center;
+                        gap:8px;
+                        flex-shrink:0;
+                    ">
+
+                        <span
                             class="delete-group"
                             style="font-size:16px"
                             onclick="App.editFavoriteTitle(${fIdx}, event)">
@@ -1084,22 +1083,22 @@
                             ↑
                         </span>
 
-                            <span
-                                class="delete-group"
-                                style="font-size:16px"
-                                onclick="App.moveFavoriteDown(${fIdx}, event)">
-                                ↓
-                            </span>
+                        <span
+                            class="delete-group"
+                            style="font-size:16px"
+                            onclick="App.moveFavoriteDown(${fIdx}, event)">
+                            ↓
+                        </span>
 
-                            <span
-                                class="delete-group"
-                                onclick="App.deleteFavorite(${fIdx}, event)">
-                                🗑️
-                            </span>
+                        <span
+                            class="delete-group"
+                            onclick="App.deleteFavorite(${fIdx}, event)">
+                            🗑️
+                        </span>
 
-                            <span class="arrow">▶</span>
+                        <span class="arrow">▶</span>
 
-                        </div>
+                    </div>
                     `;
                     groupDiv.appendChild(header);
 
