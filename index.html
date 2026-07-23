@@ -141,7 +141,7 @@
             font-size: 13px;
             cursor: pointer;
             flex-shrink: 0;
-}
+        }
 
         .btn-reset {
             background: transparent;
@@ -315,8 +315,13 @@
 
     <!-- 收藏區 -->
     <div id="favoritesSection" class="section" style="display:none">
+
         <h2 style="margin-top:0">⭐ 我的收藏</h2>
+
+        <input id="favoriteSearch" class="dialog-field" placeholder="🔍 搜尋名稱或座標..." oninput="App.renderFavorites()">
+
         <div id="favoritesList"></div>
+
     </div>
 
     <!-- 輸入區 -->
@@ -329,8 +334,22 @@
 
     <!-- 底部控制 -->
     <div class="control-bar">
-        <button class="btn btn-clear" onclick="App.clearInput()">🗑 清空輸入</button>
+
+        <button class="btn btn-clear" onclick="App.importFavorites()">
+            📥 匯入
+        </button>
+
+        <button class="btn btn-next" onclick="App.exportFavorites()">
+            📤 匯出
+        </button>
+
+        <button class="btn btn-clear" onclick="App.clearInput()">
+            🗑 清空輸入
+        </button>
+
     </div>
+
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="App.importFavoritesFile(event)">
 
     <div id="saveDialog" class="dialog-overlay">
         <div class="dialog-box">
@@ -361,35 +380,22 @@
 
             <h3>編輯座標</h3>
 
-            <input
-                id="editName"
-                class="dialog-field"
-                placeholder="名稱">
+            <input id="editName" class="dialog-field" placeholder="名稱">
 
-            <input
-                id="editCoord"
-                class="dialog-field"
-                placeholder="座標">
+            <input id="editCoord" class="dialog-field" placeholder="座標">
 
             <div class="dialog-actions">
 
 
-                <button
-                    class="btn"
-                    style="background:#dc3545;color:white"
-                    onclick="App.deleteItem()">
+                <button class="btn" style="background:#dc3545;color:white" onclick="App.deleteItem()">
                     🗑 刪除
                 </button>
 
-                <button
-                    class="btn btn-clear"
-                    onclick="App.closeEditDialog()">
+                <button class="btn btn-clear" onclick="App.closeEditDialog()">
                     取消
                 </button>
 
-                <button
-                    class="btn btn-next"
-                    onclick="App.saveEdit()">
+                <button class="btn btn-next" onclick="App.saveEdit()">
                     儲存
                 </button>
 
@@ -437,7 +443,7 @@
                     trimmed = trimmed.replace(/\//g, ",");
 
                     // 多個空白變一個
-                    trimmed = trimmed.replace(/([+-]?\d+\.\d+)\s+([+-]?\d+\.\d+)/,"$1,$2");
+                    trimmed = trimmed.replace(/([+-]?\d+\.\d+)\s+([+-]?\d+\.\d+)/, "$1,$2");
                     if (!trimmed) return;
 
                     // 匹配座標格式 (12.34, 56.78)
@@ -719,6 +725,47 @@
                 }
             },
 
+            moveFavoriteUp(index, e) {
+
+                e.stopPropagation();
+
+                if (index === 0) return;
+
+                [
+                    this.favorites[index - 1],
+                    this.favorites[index]
+                ] = [
+                        this.favorites[index],
+                        this.favorites[index - 1]
+                    ];
+
+
+                Storage.saveFavorites(this.favorites);
+
+                this.renderFavorites();
+
+            },
+
+            moveFavoriteDown(index, e) {
+
+                e.stopPropagation();
+
+                if (index >= this.favorites.length - 1) return;
+
+                [
+                    this.favorites[index],
+                    this.favorites[index + 1]
+                ] = [
+                        this.favorites[index + 1],
+                        this.favorites[index]
+                    ];
+
+                Storage.saveFavorites(this.favorites);
+
+                this.renderFavorites();
+
+            },
+
             toggleFavoriteOpen(index) {
 
                 const el = document.getElementById(`fav-group-${index}`);
@@ -745,6 +792,56 @@
                     }
                     this.updateProgress(groupObj);
                 }
+            },
+
+            moveItemUp(item, groupObj, isFav, e) {
+
+                e.stopPropagation();
+
+                const index = groupObj.items.indexOf(item);
+
+                if (index <= 0) return;
+
+                [
+                    groupObj.items[index - 1],
+                    groupObj.items[index]
+                ] = [
+                        groupObj.items[index],
+                        groupObj.items[index - 1]
+                    ];
+
+                if (isFav) {
+                    Storage.saveFavorites(this.favorites);
+                    this.renderFavorites();
+                } else {
+                    this.renderMain();
+                }
+
+            },
+
+            moveItemDown(item, groupObj, isFav, e) {
+
+                e.stopPropagation();
+
+                const index = groupObj.items.indexOf(item);
+
+                if (index >= groupObj.items.length - 1) return;
+
+                [
+                    groupObj.items[index],
+                    groupObj.items[index + 1]
+                ] = [
+                        groupObj.items[index + 1],
+                        groupObj.items[index]
+                    ];
+
+                if (isFav) {
+                    Storage.saveFavorites(this.favorites);
+                    this.renderFavorites();
+                } else {
+                    this.renderMain();
+                }
+
             },
 
             resetCopied(item, element, groupObj, isFav, e) {
@@ -875,6 +972,11 @@
             renderFavorites() {
                 const container = document.getElementById('favoritesList');
                 const sec = document.getElementById('favoritesSection');
+                const keyword = document
+                    .getElementById("favoriteSearch")
+                    ?.value
+                    .trim()
+                    .toLowerCase() || "";
 
                 if (this.favorites.length === 0) {
                     sec.style.display = "none";
@@ -884,6 +986,29 @@
                 container.innerHTML = "";
 
                 this.favorites.forEach((group, fIdx) => {
+
+                    let displayItems = group.items;
+
+                    if (keyword) {
+
+                        // 如果群組名稱符合，就整個群組都顯示
+                        if (group.title.toLowerCase().includes(keyword)) {
+
+                            displayItems = group.items;
+
+                        } else {
+
+                            displayItems = group.items.filter(item =>
+                                item.name.toLowerCase().includes(keyword) ||
+                                item.coord.toLowerCase().includes(keyword)
+                            );
+
+                            if (displayItems.length === 0)
+                                return;
+                        }
+
+                    }
+
                     const groupDiv = document.createElement('div');
                     groupDiv.className = 'fav-group';
                     groupDiv.id = `fav-group-${fIdx}`;
@@ -898,9 +1023,30 @@
                             <div style="font-weight:bold">📂 ${group.title}</div>
                             <div class="tag-count">${group.items.length} 個座標 | <span id="fav-count-${fIdx}">${copiedCount} / ${group.items.length}</span></div>
                         </div>
-                        <div style="display:flex; align-items:center">
-                            <span class="delete-group" onclick="App.deleteFavorite(${fIdx}, event)">🗑️</span>
-                            <span class="arrow" style="margin-left:10px">▶</span>
+                        <div style="display:flex; align-items:center;gap:8px">
+
+                            <span
+                                class="delete-group"
+                                style="font-size:16px"
+                                onclick="App.moveFavoriteUp(${fIdx}, event)">
+                                ↑
+                            </span>
+
+                            <span
+                                class="delete-group"
+                                style="font-size:16px"
+                                onclick="App.moveFavoriteDown(${fIdx}, event)">
+                                ↓
+                            </span>
+
+                            <span
+                                class="delete-group"
+                                onclick="App.deleteFavorite(${fIdx}, event)">
+                                🗑️
+                            </span>
+
+                            <span class="arrow">▶</span>
+
                         </div>
                     `;
                     groupDiv.appendChild(header);
@@ -924,7 +1070,7 @@
                     progress.appendChild(btn);
 
                     content.appendChild(progress);
-                    group.items.forEach(item => {
+                    displayItems.forEach(item => {
                         const itemEl = this.createCoordElement(item, group, true);
                         content.appendChild(itemEl);
                     });
@@ -932,7 +1078,7 @@
                     groupDiv.appendChild(content);
                     container.appendChild(groupDiv);
 
-                    if (this.lastOpenFavoriteIndex === fIdx) {
+                    if (keyword || this.lastOpenFavoriteIndex === fIdx) {
                         groupDiv.classList.add("is-open");
                     }
 
@@ -976,6 +1122,127 @@
 
             },
 
+
+
+
+
+            exportFavorites() {
+
+                const data = JSON.stringify(this.favorites, null, 2);
+
+                const blob = new Blob(
+                    [data],
+                    { type: "application/json" }
+                );
+
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement("a");
+
+                const today = new Date();
+
+                const fileName =
+                    `座標收藏_${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}.json`;
+
+                a.href = url;
+                a.download = fileName;
+
+                a.click();
+
+                URL.revokeObjectURL(url);
+
+            },
+
+            importFavorites() {
+
+                document.getElementById("importFile").click();
+
+            },
+
+
+            importFavoritesFile(event) {
+
+                const file = event.target.files[0];
+
+                if (!file) return;
+
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+
+                    try {
+
+                        const data = JSON.parse(e.target.result);
+
+                        let addGroup = 0;
+                        let addItem = 0;
+
+                        data.forEach(importGroup => {
+
+                            // 找是否已有同名群組
+                            let targetGroup = this.favorites.find(
+                                g => g.title === importGroup.title
+                            );
+
+                            // 沒有就建立
+                            if (!targetGroup) {
+
+                                targetGroup = {
+                                    title: importGroup.title,
+                                    items: []
+                                };
+
+                                this.favorites.push(targetGroup);
+                                addGroup++;
+                            }
+
+                            // 加入座標
+                            importGroup.items.forEach(item => {
+
+                                const exists = targetGroup.items.some(
+                                    i => i.coord === item.coord
+                                );
+
+                                if (!exists) {
+
+                                    targetGroup.items.push({
+                                        id: Date.now() + Math.random(),
+                                        name: item.name,
+                                        coord: item.coord,
+                                        copied: false
+                                    });
+
+                                    addItem++;
+                                }
+
+                            });
+
+                        });
+
+                        Storage.saveFavorites(this.favorites);
+
+                        this.renderFavorites();
+
+                        alert(
+                            `匯入完成！\n新增群組：${addGroup}\n新增座標：${addItem}`
+                        );
+
+                    } catch (err) {
+
+                        console.error(err);
+
+                        alert("JSON 格式錯誤");
+
+                    }
+
+                    event.target.value = "";
+
+                };
+
+                reader.readAsText(file);
+
+            },
+
             createCoordElement(item, groupObj, isFav = false) {
                 const el = document.createElement('div');
                 el.className = `coord-item ${item.copied ? 'is-copied' : ''}`;
@@ -984,6 +1251,8 @@
                         <div class="coord-name">${item.copied ? "✅ " : ""}${item.name}</div>
                         <div style="display:flex;gap:6px;">
                             ${isFav ? '' : '<button class="btn-save-item" type="button">⭐</button>'}
+                            <button class="btn-reset btn-up" type="button">↑</button>
+                            <button class="btn-reset btn-down" type="button">↓</button>
                             <button class="btn-edit" type="button">✏️</button>
                             <button class="btn-reset" type="button">↺</button>
                         </div>
@@ -994,6 +1263,12 @@
                     el.querySelector('.btn-save-item').onclick =
                         (e) => this.saveSingle(item, groupObj, e);
                 }
+
+                el.querySelector('.btn-up').onclick =
+                    (e) => this.moveItemUp(item, groupObj, isFav, e);
+
+                el.querySelector('.btn-down').onclick =
+                    (e) => this.moveItemDown(item, groupObj, isFav, e);
 
                 el.querySelector('.btn-edit').onclick =
                     (e) => this.openEditDialog(item, groupObj, isFav, e);
